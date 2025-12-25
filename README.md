@@ -171,7 +171,7 @@ textblob
 
 1. **Clone or download the project**
    ```bash
-   git clone https://github.com/MSDharanish-23011819/Stress-Level-Prediction-.git
+   git clone https://github.com/23012925/SML.git
    cd Stress-Level-Prediction-
    ```
 
@@ -347,7 +347,7 @@ This project is created for educational and mental health assessment purposes.
 
 ## ✍️ Author
 
-**MSDharanish-23011819**
+**JANARTHANAN K - 212223040072**
 
 Developed as a comprehensive stress prediction and mental health advisory system.
 
@@ -357,5 +357,4 @@ Developed as a comprehensive stress prediction and mental health advisory system
 
 
 =======
-# SMLFINAL
->>>>>>> 4166a2e9d4c05f23bb63534ef433cc29c5e4a3aa
+

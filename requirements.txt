@@ -1,0 +1,19 @@
+flask
+numpy
+pandas
+scikit-learn
+joblib
+matplotlib
+seaborn
+
+# Emotion Detection & Face Analysis
+torch
+torchvision
+opencv-python-headless
+Pillow
+
+# Text Analysis
+textblob
+
+# Utilities
+werkzeug

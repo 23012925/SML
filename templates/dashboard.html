@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Stress Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
+    <span id="themeIcon">🌙</span>
+</button>
+
+<div class="container">
+    <h2>👋 Welcome back, {{ username or 'User' }}!</h2>
+    <p>Choose how you'd like to assess your stress level today</p>
+
+    <!-- Assessment Options -->
+    <div class="dashboard-grid">
+        <a href="/measure" class="dashboard-card">
+            <div class="card-icon">📋</div>
+            <h3>Survey Assessment</h3>
+            <p>Answer 20 questions about your lifestyle, health, and environment</p>
+            <span class="card-tag">Most Comprehensive</span>
+            <div class="model-info">🤖 Random Forest + SHAP</div>
+        </a>
+
+        {% if emotion_enabled %}
+        <a href="/face-upload" class="dashboard-card">
+            <div class="card-icon">📸</div>
+            <h3>Facial Analysis</h3>
+            <p>Upload a photo or use your camera for emotion detection</p>
+            <span class="card-tag">Quick & Visual</span>
+            <div class="model-info">🧠 Keras CNN (emotiondetector.h5)</div>
+        </a>
+        {% else %}
+        <div class="dashboard-card disabled">
+            <div class="card-icon">📸</div>
+            <h3>Facial Analysis</h3>
+            <p>Upload a photo for emotion detection</p>
+            <span class="card-tag error">Not Available</span>
+        </div>
+        {% endif %}
+
+        {% if text_enabled %}
+        <a href="/text-analysis" class="dashboard-card">
+            <div class="card-icon">📝</div>
+            <h3>Text Analysis</h3>
+            <p>Write about how you're feeling for sentiment analysis</p>
+            <span class="card-tag">Express Yourself</span>
+            <div class="model-info">📊 TextBlob NLP</div>
+        </a>
+        {% else %}
+        <div class="dashboard-card disabled">
+            <div class="card-icon">📝</div>
+            <h3>Text Analysis</h3>
+            <p>Write about how you're feeling</p>
+            <span class="card-tag error">Not Available</span>
+        </div>
+        {% endif %}
+
+        {% if emotion_enabled %}
+        <a href="/live-face" class="dashboard-card">
+            <div class="card-icon">📹</div>
+            <h3>Live Camera</h3>
+            <p>Real-time emotion detection from webcam</p>
+            <span class="card-tag">Real-time</span>
+            <div class="model-info">⚡ Real-time Keras CNN</div>
+        </a>
+        {% else %}
+        <a href="/history" class="dashboard-card">
+            <div class="card-icon">📊</div>
+            <h3>View History</h3>
+            <p>Track your stress levels over time</p>
+            <span class="card-tag">{{ stats.total }} Assessments</span>
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Models Information -->
+    <div class="models-section" style="margin-top: 30px; padding: 20px; background: var(--input-bg); border-radius: 16px;">
+        <h3 style="margin-bottom: 15px;">🤖 AI Models Powering Your Analysis</h3>
+        <div class="models-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div class="model-card" style="padding: 15px; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color);">
+                <h4 style="margin-bottom: 8px;">📋 Stress Prediction</h4>
+                <p style="font-size: 13px; margin: 0;">Random Forest Classifier trained on 20 lifestyle factors</p>
+            </div>
+            <div class="model-card" style="padding: 15px; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color);">
+                <h4 style="margin-bottom: 8px;">📸 Emotion Detection</h4>
+                <p style="font-size: 13px; margin: 0;">CNN model detecting 7 emotions from facial expressions</p>
+            </div>
+            <div class="model-card" style="padding: 15px; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color);">
+                <h4 style="margin-bottom: 8px;">📝 Sentiment Analysis</h4>
+                <p style="font-size: 13px; margin: 0;">NLP model analyzing text for stress indicators</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    {% if history %}
+    <div class="stats-section">
+        <h3>📈 Your Recent Activity</h3>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.survey }}</div>
+                <div class="stat-label">Surveys</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.face }}</div>
+                <div class="stat-label">Face Scans</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.text }}</div>
+                <div class="stat-label">Text Analyses</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trend Chart -->
+    {% if trend_data %}
+    <div class="chart-section">
+        <h3>📉 Stress Trend</h3>
+        <div style="position: relative; height: 200px;">
+            <canvas id="trendChart"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent History -->
+    <div class="recent-section">
+        <h3>🕐 Recent Assessments</h3>
+        <div class="history-list">
+            {% for item in history[:3] %}
+            <div class="history-item">
+                <div class="history-icon">
+                    {% if item.type == 'survey' %}📋
+                    {% elif item.type == 'face' %}📸
+                    {% else %}📝{% endif %}
+                </div>
+                <div class="history-details">
+                    <span class="badge badge-sm {% if item.stress_level == 1 %}badge-low{% elif item.stress_level == 2 %}badge-moderate{% else %}badge-high{% endif %}">
+                        {{ item.stress_text }}
+                    </span>
+                    <span class="history-date">{{ item.created_at[:10] }}</span>
+                </div>
+                <div class="history-type">{{ item.type|title }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if history|length > 3 %}
+        <a href="/history" class="btn btn-sm btn-secondary" style="margin-top: 15px;">View All History</a>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">🌟</div>
+        <h3>Start Your Journey</h3>
+        <p>Complete your first stress assessment to start tracking your mental wellness.</p>
+    </div>
+    {% endif %}
+
+    <div class="btn-group" style="margin-top: 30px;">
+        <a href="/" class="btn btn-secondary">← Home</a>
+    </div>
+
+    <div class="disclaimer">
+        💡 <strong>Tip:</strong> Regular assessments help you identify patterns and track your progress. 
+        Try different methods to get a comprehensive view of your stress levels.
+    </div>
+</div>
+
+<script>
+// Theme toggle
+function toggleTheme() {
+    const body = document.body;
+    const icon = document.getElementById('themeIcon');
+    if (body.getAttribute('data-theme') === 'dark') {
+        body.removeAttribute('data-theme');
+        icon.textContent = '🌙';
+        localStorage.setItem('theme', 'light');
+    } else {
+        body.setAttribute('data-theme', 'dark');
+        icon.textContent = '☀️';
+        localStorage.setItem('theme', 'dark');
+    }
+    
+    if (window.trendChart) {
+        updateChartTheme();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.body.setAttribute('data-theme', 'dark');
+        document.getElementById('themeIcon').textContent = '☀️';
+    }
+    
+    {% if trend_data %}
+    initTrendChart();
+    {% endif %}
+});
+
+{% if trend_data %}
+function initTrendChart() {
+    const trendData = {{ trend_data|tojson|safe }};
+    
+    if (trendData.length === 0) return;
+    
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    
+    const labels = trendData.map(d => {
+        const date = new Date(d.date);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+    
+    const data = trendData.map(d => d.stress_level);
+    const types = trendData.map(d => d.type);
+    
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    
+    const typeColors = {
+        'survey': '#667eea',
+        'face': '#764ba2',
+        'text': '#2EC4B6'
+    };
+    
+    window.trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Stress Level',
+                data: data,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: types.map(t => typeColors[t] || '#667eea'),
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    min: 0,
+                    max: 4,
+                    ticks: {
+                        stepSize: 1,
+                        callback: value => ['', 'Low', 'Moderate', 'High'][value] || ''
+                    }
+                }
+            }
+        }
+    });
+}
+{% endif %}
+</script>
+
+</body>
+</html>
